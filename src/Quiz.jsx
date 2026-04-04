@@ -1,61 +1,61 @@
-import './Quiz.css'
-import { useReducer } from 'react'
-import { useState } from 'react'
+import './Quiz.css';
+import { useReducer, useState } from 'react';
 
 const initialState = {
     ANSWER1: false,
     ANSWER2: false,
     ANSWER3: false,
     ANSWER4: false,
+    score: 0,
 };
 
-function selectReducer(state, action) {           
+function selectReducer(state, action) {
     switch (action.type) {
         case 'ANSWER1':
-            return { 
-                ANSWER1: true, 
-                ANSWER2: false,
-                ANSWER3: false,
-                ANSWER4: false
-            };
+            return { ...state, ANSWER1: true, ANSWER2: false, ANSWER3: false, ANSWER4: false };
         case 'ANSWER2':
-            return { 
-                ANSWER1: false, 
-                ANSWER2: true,
-                ANSWER3: false,
-                ANSWER4: false
-            };
+            return { ...state, ANSWER1: false, ANSWER2: true, ANSWER3: false, ANSWER4: false };
         case 'ANSWER3':
-            return { 
-                ANSWER1: false, 
-                ANSWER2: false,
-                ANSWER3: true,
-                ANSWER4: false
-            };
+            return { ...state, ANSWER1: false, ANSWER2: false, ANSWER3: true, ANSWER4: false };
         case 'ANSWER4':
-            return { 
-                ANSWER1: false, 
-                ANSWER2: false,
-                ANSWER3: false,
-                ANSWER4: true
-            };
+            return { ...state, ANSWER1: false, ANSWER2: false, ANSWER3: false, ANSWER4: true };
+
         case 'RESET':
-            return { 
-                ANSWER1: false, 
+            return { ...initialState };
+
+        case 'NEXT_QUESTION':
+            {
+            const currentQuestion = action.payload;
+            if (!currentQuestion) return state;   
+
+            let points = 0;
+
+            if (state.ANSWER1 && currentQuestion.option1 === currentQuestion.answer) points = 1;
+            else if (state.ANSWER2 && currentQuestion.option2 === currentQuestion.answer) points = 1;
+            else if (state.ANSWER3 && currentQuestion.option3 === currentQuestion.answer) points = 1;
+            else if (state.ANSWER4 && currentQuestion.option4 === currentQuestion.answer) points = 1;
+
+            return {
+                ...state,
+                score: state.score + points,
+                ANSWER1: false,
                 ANSWER2: false,
                 ANSWER3: false,
-                ANSWER4: false
+                ANSWER4: false,
+            }
             };
+
         default:
             return state;
     }
 }
 
 function QuizApp() {
-
     const [state, dispatch] = useReducer(selectReducer, initialState);
+    const [questionNum, setQuestionNum] = useState(1);
+    const [isFinished, setIsFinished] = useState(false);
 
-    const QandA = [  
+    const QandA = [
         {
             id: 1,
             question: "What is SEO?",
@@ -117,7 +117,7 @@ function QuizApp() {
             option1: "Because videos are fun to watch",
             option2: "Because YouTube has better design",
             option3: "YouTube is only for entertainment",
-            option4: "AI reads video transcripts and can cite your content"
+            option4: "AI reads video transcripts and can cite your content",
         },
         {
             id: 8,
@@ -145,16 +145,27 @@ function QuizApp() {
             option2: "To hide images from competitors",
             option3: "To increase image resolution",
             option4: "To describe the image to search engines and AI",
-        }
+        },
     ];
 
-    const [questionNum, setquestionNum] = useState(1);
+    const handleNext = () => {
+        // Calculate score for current question
+        dispatch({
+            type: 'NEXT_QUESTION',
+            payload: QandA[questionNum - 1],
+        });
 
-    const handleQuestionNum = () => {
         if (questionNum < 10) {
-            setquestionNum(questionNum + 1);
-            dispatch({ type: 'RESET' });  
+            setQuestionNum((prev) => prev + 1);   // ← Fixed with functional update
+        } else {
+            setIsFinished(true);                  // Finish after scoring Q10
         }
+    };
+
+    const restartQuiz = () => {
+        dispatch({ type: 'RESET' });
+        setQuestionNum(1);
+        setIsFinished(false);
     };
 
     const isSelected = (num) => {
@@ -165,46 +176,84 @@ function QuizApp() {
         return false;
     };
 
+    // ====================== RESULT SCREEN ======================
+    if (isFinished) {
+        const percentage = Math.round((Number(state.score) / 10) * 100) || 0;   // ← Prevents NaN
+
+        return (
+            <main className="quiz_container result_screen">
+                <h1 className="heading1">Quiz Completed!</h1>
+
+                <div className="result_card">
+                    <h2>Your Score</h2>
+                    <div className="score">
+                        {state.score} <span>/ 10</span>
+                    </div>
+                    <p className="percentage">{percentage}%</p>
+
+                    <p className="feedback">
+                        {percentage >= 80
+                            ? "Excellent! You're a SEO master! 🎉"
+                            : percentage >= 60
+                            ? "Good job! You know your SEO basics well."
+                            : percentage >= 40
+                            ? "Not bad! A bit more practice and you'll improve."
+                            : "Keep learning! SEO is a big topic."}
+                    </p>
+
+                    <button className="next_question restart_btn" onClick={restartQuiz}>
+                        Restart Quiz
+                    </button>
+                </div>
+            </main>
+        );
+    }
+
+    // ====================== QUIZ SCREEN ======================
     return (
         <main className="quiz_container">
             <h1 className="heading1">Question {questionNum}/10</h1>
 
-            <section className='question_container'>
-                <h2 className='question'>{QandA[questionNum-1].question}</h2>
+            <section className="question_container">
+                <h2 className="question">{QandA[questionNum - 1].question}</h2>
 
-                <section className='answers_container'>
-                    <div 
-                        className={`answer ${isSelected(1) ? 'selected' : ''}`} 
+                <section className="answers_container">
+                    <div
+                        className={`answer ${isSelected(1) ? 'selected' : ''}`}
                         onClick={() => dispatch({ type: 'ANSWER1' })}
                     >
-                        <p>a) {QandA[questionNum-1].option1}</p>
+                        <p>a) {QandA[questionNum - 1].option1}</p>
                     </div>
-                    <div 
-                        className={`answer ${isSelected(2) ? 'selected' : ''}`} 
+                    <div
+                        className={`answer ${isSelected(2) ? 'selected' : ''}`}
                         onClick={() => dispatch({ type: 'ANSWER2' })}
                     >
-                        <p>b) {QandA[questionNum-1].option2}</p>
+                        <p>b) {QandA[questionNum - 1].option2}</p>
                     </div>
-                    <div 
-                        className={`answer ${isSelected(3) ? 'selected' : ''}`} 
+                    <div
+                        className={`answer ${isSelected(3) ? 'selected' : ''}`}
                         onClick={() => dispatch({ type: 'ANSWER3' })}
                     >
-                        <p>c) {QandA[questionNum-1].option3}</p>
+                        <p>c) {QandA[questionNum - 1].option3}</p>
                     </div>
-                    <div 
-                        className={`answer ${isSelected(4) ? 'selected' : ''}`} 
+                    <div
+                        className={`answer ${isSelected(4) ? 'selected' : ''}`}
                         onClick={() => dispatch({ type: 'ANSWER4' })}
                     >
-                        <p>d) {QandA[questionNum-1].option4}</p>
+                        <p>d) {QandA[questionNum - 1].option4}</p>
                     </div>
                 </section>
-                
-                <button className='next_question' onClick={handleQuestionNum}>
-                    Next Question
+
+                <button
+                    className="next_question"
+                    onClick={handleNext}
+                    disabled={!state.ANSWER1 && !state.ANSWER2 && !state.ANSWER3 && !state.ANSWER4}
+                >
+                    {questionNum === 10 ? 'Finish Quiz' : 'Next Question'}
                 </button>
             </section>
         </main>
-    )
+    );
 }
 
-export default QuizApp
+export default QuizApp;
