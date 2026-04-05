@@ -80,4 +80,8 @@ This was my **first solo project using `useReducer`** and it was a genuine chall
 
 *A challenging but rewarding build — the first of many `useReducer` projects.*
 
+
+https://github.com/user-attachments/assets/9a1a3069-f61d-4dc9-867d-bc3e4214d42b
+
+
 </div>
